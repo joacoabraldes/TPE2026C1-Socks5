@@ -1,0 +1,11 @@
+# artefactos de compilación
+/obj/
+/bin/
+
+# binarios sueltos
+*.o
+socks5d
+socks5-mgmt
+
+# temporales
+*.log
