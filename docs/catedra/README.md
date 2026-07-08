@@ -24,6 +24,11 @@ default `-fno-common` de GCC moderno, se aplicaron cambios menores:
   declaration `struct selector_key;`.
 - `src/selector.c`: se agregó `(void)signal;` en `wake_handler` (parámetro no
   usado, `-Wextra`) y se cambió `#include <sys/signal.h>` por `<signal.h>`.
+- `src/selector.c`: en `selector_fd_set_nio` se corrigió `fcntl(fd, F_GETFD, 0)`
+  por `F_GETFL`. `O_NONBLOCK` es un *file status flag* (F_GETFL/F_SETFL), no un
+  *file descriptor flag* (F_GETFD/F_SETFD). Con `F_GETFD` se leían los flags
+  equivocados y no se preservaban los de estado; en Linux "funcionaba" por
+  casualidad, pero es incorrecto y podría romper en otros UNIX.
 - `src/buffer.h`: se agregó `#include <stdint.h>` (usa `uint8_t`).
 - `src/netutils.c`: fallback `#ifndef MSG_NOSIGNAL` para portabilidad.
 
