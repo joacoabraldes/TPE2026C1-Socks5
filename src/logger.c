@@ -34,6 +34,23 @@ void logger_access(const char *user, const char *cmd,
     fflush(access_file);
 }
 
+void logger_pop3(const char *proxy_user, const char *origin, const char *dest,
+                 const char *sniff_user, const char *sniff_pass) {
+    if (access_file == NULL) {
+        access_file = stdout;
+    }
+    char ts[64];
+    iso8601_now(ts, sizeof(ts));
+    fprintf(access_file, "%s\tPOP3\t%s\t%s -> %s\tuser=%s\tpass=%s\n",
+            ts,
+            proxy_user != NULL ? proxy_user : "-",
+            origin     != NULL ? origin     : "-",
+            dest       != NULL ? dest       : "-",
+            sniff_user != NULL ? sniff_user : "-",
+            sniff_pass != NULL ? sniff_pass : "-");
+    fflush(access_file);
+}
+
 void logger_log(const char *level, const char *fmt, ...) {
     char ts[64];
     iso8601_now(ts, sizeof(ts));

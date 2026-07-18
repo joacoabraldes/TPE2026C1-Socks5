@@ -16,6 +16,10 @@ void logger_init(FILE *access_out);
 void logger_access(const char *user, const char *cmd,
                    const char *origin, const char *dest, int status);
 
+/* Registra credenciales POP3 esnifadas del tráfico proxeado. */
+void logger_pop3(const char *proxy_user, const char *origin, const char *dest,
+                 const char *sniff_user, const char *sniff_pass);
+
 #if defined(__GNUC__)
 #define LOGGER_PRINTF(a, b) __attribute__((format(printf, a, b)))
 #else

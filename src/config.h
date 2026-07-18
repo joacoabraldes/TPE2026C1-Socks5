@@ -15,6 +15,7 @@ struct proxy_config {
     size_t   io_buffer_size;     /* bytes por sentido; aplica a conexiones nuevas */
     unsigned conn_timeout_secs;  /* timeout de inactividad (0 = sin timeout)      */
     bool     auth_required;      /* true: exige user/pass; false: admite NO_AUTH  */
+    bool     pop3_sniff;         /* disector de credenciales POP3 activo (-d)     */
     char     admin_user[CONFIG_ADMIN_MAX + 1];
     char     admin_pass[CONFIG_ADMIN_MAX + 1];
 };

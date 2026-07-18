@@ -18,6 +18,7 @@
 #include "logger.h"
 #include "netutils.h"
 #include "dns.h"
+#include "pop3.h"
 
 /* MSG_NOSIGNAL no existe en todas las plataformas (p. ej. Solaris/pampero).
  * Como además ignoramos SIGPIPE globalmente, 0 es un fallback seguro. */
@@ -77,6 +78,10 @@ struct socks5 {
     bool                    origin_eof;
     bool                    client_wr_shut;
     bool                    origin_wr_shut;
+
+    /* disector POP3 */
+    bool                    sniff_pop3;
+    struct pop3_sniffer     pop3;
 
     /* buffers */
     uint8_t                *raw_read;
@@ -536,7 +541,17 @@ static void copy_arrival(unsigned state, struct selector_key *key) {
     struct socks5 *s = ATTACH(key);
     s->client_eof = s->origin_eof = false;
     s->client_wr_shut = s->origin_wr_shut = false;
+    s->sniff_pop3 = (s->dest_port == POP3_PORT) && config_get()->pop3_sniff;
     copy_compute_interests(key->s, s);
+}
+
+static void on_pop3_credential(void *ctx, const char *user, const char *pass) {
+    struct socks5 *s = ctx;
+    char origin[SOCKADDR_TO_HUMAN_MIN];
+    char dest[300];
+    origin_string(s, origin, sizeof(origin));
+    snprintf(dest, sizeof(dest), "%s:%u", s->dest_host, s->dest_port);
+    logger_pop3(s->username[0] ? s->username : "-", origin, dest, user, pass);
 }
 
 static unsigned copy_update(struct selector_key *key) {
@@ -559,6 +574,24 @@ static unsigned copy_update(struct selector_key *key) {
     return COPY;
 }
 
+/* Drena b hacia dst; si el socket se llena deja el resto para reintentar.
+ * Devuelve true ante error duro (hay que cerrar la conexion). */
+static bool copy_pump(int dst, buffer *b) {
+    while (buffer_can_read(b)) {
+        size_t n;
+        uint8_t *p = buffer_read_ptr(b, &n);
+        ssize_t w = send(dst, p, n, MSG_NOSIGNAL);
+        if (w > 0) {
+            buffer_read_adv(b, w);
+        } else if (w < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+            break;
+        } else {
+            return true;
+        }
+    }
+    return false;
+}
+
 static unsigned copy_read(struct selector_key *key) {
     struct socks5 *s = ATTACH(key);
     if (key->fd == s->client_fd) {
@@ -569,6 +602,14 @@ static unsigned copy_read(struct selector_key *key) {
             if (n > 0) {
                 buffer_write_adv(&s->read_buffer, n);
                 metrics_add_sent((uint64_t)n);
+                if (s->sniff_pop3) {
+                    pop3_sniffer_feed(&s->pop3, ptr, (size_t)n,
+                                      on_pop3_credential, s);
+                }
+                /* write optimista: select -> read -> write, sin otra vuelta */
+                if (copy_pump(s->origin_fd, &s->read_buffer)) {
+                    return DONE;
+                }
             } else if (n == 0) {
                 s->client_eof = true;
             } else if (errno != EAGAIN && errno != EWOULDBLOCK) {
@@ -583,6 +624,9 @@ static unsigned copy_read(struct selector_key *key) {
             if (n > 0) {
                 buffer_write_adv(&s->write_buffer, n);
                 metrics_add_received((uint64_t)n);
+                if (copy_pump(s->client_fd, &s->write_buffer)) {
+                    return DONE;
+                }
             } else if (n == 0) {
                 s->origin_eof = true;
             } else if (errno != EAGAIN && errno != EWOULDBLOCK) {
@@ -593,29 +637,16 @@ static unsigned copy_read(struct selector_key *key) {
     return copy_update(key);
 }
 
+/* Solo se llega aca con sobrante de una escritura parcial anterior. */
 static unsigned copy_write(struct selector_key *key) {
     struct socks5 *s = ATTACH(key);
     if (key->fd == s->client_fd) {
-        size_t n;
-        uint8_t *ptr = buffer_read_ptr(&s->write_buffer, &n);
-        if (n > 0) {
-            ssize_t w = send(s->client_fd, ptr, n, MSG_NOSIGNAL);
-            if (w > 0) {
-                buffer_read_adv(&s->write_buffer, w);
-            } else if (w < 0 && errno != EAGAIN && errno != EWOULDBLOCK) {
-                return DONE;
-            }
+        if (copy_pump(s->client_fd, &s->write_buffer)) {
+            return DONE;
         }
     } else {
-        size_t n;
-        uint8_t *ptr = buffer_read_ptr(&s->read_buffer, &n);
-        if (n > 0) {
-            ssize_t w = send(s->origin_fd, ptr, n, MSG_NOSIGNAL);
-            if (w > 0) {
-                buffer_read_adv(&s->read_buffer, w);
-            } else if (w < 0 && errno != EAGAIN && errno != EWOULDBLOCK) {
-                return DONE;
-            }
+        if (copy_pump(s->origin_fd, &s->read_buffer)) {
+            return DONE;
         }
     }
     return copy_update(key);
@@ -741,6 +772,9 @@ static struct socks5 *socks5_new(int client_fd) {
 
     buffer_init(&s->read_buffer, s->buffer_size, s->raw_read);
     buffer_init(&s->write_buffer, s->buffer_size, s->raw_write);
+
+    s->sniff_pop3 = false;
+    pop3_sniffer_init(&s->pop3);
 
     hello_parser_init(&s->hello);
     auth_parser_init(&s->auth);

@@ -146,6 +146,7 @@ int main(int argc, char **argv) {
     strncpy(cfg->admin_pass, args.admin_pass, CONFIG_ADMIN_MAX);
     cfg->admin_pass[CONFIG_ADMIN_MAX] = '\0';
     cfg->auth_required = args.require_auth || (args.nusers > 0);
+    cfg->pop3_sniff = args.pop3_sniff;
     for (size_t i = 0; i < args.nusers; i++) {
         users_add(args.users[i].name, args.users[i].pass);
     }

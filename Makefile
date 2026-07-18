@@ -11,8 +11,17 @@
 CC      ?= cc
 STD      = -std=c11
 WARN     = -Wall -Wextra -pedantic
+
+# Entrega (release) por defecto: optimizado y sin símbolos de debug.
+# Debug:  make DEBUG=1   -> sin optimizar y con -g.
+OPT      = -O2
+ifdef DEBUG
+OPT      = -O0 -g
+endif
+
 # _DEFAULT_SOURCE: Linux/glibc | _POSIX_C_SOURCE: POSIX | __EXTENSIONS__: Solaris
-CFLAGS  ?= $(STD) $(WARN) -g -O2 -D_DEFAULT_SOURCE -D_POSIX_C_SOURCE=200809L -D__EXTENSIONS__
+FEATURES = -D_DEFAULT_SOURCE -D_POSIX_C_SOURCE=200809L -D__EXTENSIONS__
+CFLAGS  ?= $(STD) $(WARN) $(OPT) $(FEATURES)
 CPPFLAGS = -Isrc
 LDFLAGS ?=
 LDLIBS  ?= -lpthread
@@ -31,6 +40,7 @@ SERVER_SRC = \
 	src/netutils.c \
 	src/socks5.c \
 	src/socks5_parsers.c \
+	src/pop3.c \
 	src/dns.c \
 	src/mgmt.c \
 	src/args.c \

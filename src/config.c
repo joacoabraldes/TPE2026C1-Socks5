@@ -8,6 +8,7 @@ void config_init_defaults(void) {
     cfg.io_buffer_size    = 8192;
     cfg.conn_timeout_secs = 0;      /* sin timeout por defecto */
     cfg.auth_required     = false;  /* se ajusta según usuarios/args */
+    cfg.pop3_sniff        = false;
     strcpy(cfg.admin_user, "admin");
     strcpy(cfg.admin_pass, "admin");
 }

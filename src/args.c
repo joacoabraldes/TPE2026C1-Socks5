@@ -21,6 +21,7 @@ static void usage(const char *prog) {
         "  -u <user:pass>    agrega un usuario del proxy (hasta %d, repetible)\n"
         "  -a <user:pass>    credenciales de admin del management (default: admin:admin)\n"
         "  -N                exige autenticacion user/pass (deshabilita NO_AUTH)\n"
+        "  -d                activa el disector de credenciales POP3\n"
         "\n",
         prog, USERS_MAX);
 }
@@ -65,7 +66,7 @@ void args_parse(int argc, char **argv, struct socks5args *out) {
 
     int c;
     opterr = 1;
-    while ((c = getopt(argc, argv, "hvl:p:L:P:u:a:N")) != -1) {
+    while ((c = getopt(argc, argv, "hvl:p:L:P:u:a:Nd")) != -1) {
         switch (c) {
             case 'h':
                 usage(argv[0]);
@@ -111,6 +112,9 @@ void args_parse(int argc, char **argv, struct socks5args *out) {
                 break;
             case 'N':
                 out->require_auth = true;
+                break;
+            case 'd':
+                out->pop3_sniff = true;
                 break;
             default:
                 usage(argv[0]);

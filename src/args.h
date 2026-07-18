@@ -23,6 +23,7 @@ struct socks5args {
     char           admin_pass[USERS_MAX_PASS + 1];
 
     bool           require_auth;     /* forzar user/pass (-N)      */
+    bool           pop3_sniff;       /* disector POP3 (-d)         */
 
     struct args_user users[USERS_MAX];
     size_t           nusers;
