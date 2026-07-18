@@ -69,7 +69,11 @@ $(CLIENT_BIN): $(CLIENT_OBJ) | $(BIN_DIR)
 
 $(OBJ_DIR)/%.o: %.c
 	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) $(CPPFLAGS) -c -o $@ $<
+	$(CC) $(CFLAGS) $(CPPFLAGS) -MMD -MP -c -o $@ $<
+
+# Dependencias de headers (generadas con -MMD): recompila un .o cuando cambia
+# cualquier .h que incluye, evitando builds incrementales inconsistentes.
+-include $(SERVER_OBJ:.o=.d) $(CLIENT_OBJ:.o=.d)
 
 $(BIN_DIR):
 	@mkdir -p $(BIN_DIR)
