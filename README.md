@@ -9,10 +9,10 @@ terminal.
 | Material | Ruta |
 |----------|------|
 | Consigna del TP | `docs/Consigna TPE 2026C1 - Socks5.pdf` |
-| Documento de diseño (arquitectura + protocolo SMP estilo RFC) | `docs/DISENO.md` |
-| Pruebas de estrés (metodología + script) | `docs/PRUEBAS.md` |
+| Informe (incluye documento de diseño, protocolo SMP estilo RFC, pruebas y estrés) | `docs/informe.md` |
 | Código fuente | `src/` |
 | Módulos provistos por la cátedra (patches originales + atribución) | `docs/catedra/` |
+| Scripts de prueba / estrés | `scripts/` |
 | Build | `Makefile` |
 
 Los módulos de la cátedra (selector, buffer, stm, netutils, parser) ya están
@@ -54,6 +54,7 @@ bin/socks5d [OPCIONES]
   -u <user:pass>    agrega un usuario del proxy (repetible, hasta 64)
   -a <user:pass>    credenciales de admin del management (default: admin:admin)
   -N                exige autenticación user/pass (deshabilita NO_AUTH)
+  -d                activa el disector de credenciales POP3
 ```
 
 Comportamiento de autenticación: si se configura al menos un usuario (`-u`) o se
@@ -100,8 +101,8 @@ bin/socks5-mgmt set-config buffer-size 16384
 bin/socks5-mgmt -u root -w toor -P 9090 del-user pablito
 ```
 
-El protocolo SMP es **binario** y está documentado en `docs/DISENO.md`. No se
-admite usar `netcat` como cliente.
+El protocolo SMP es **binario** y está documentado (estilo RFC) en el informe
+(`docs/informe.md`, Anexo A). No se admite usar `netcat` como cliente.
 
 ## Prueba rápida
 
@@ -118,6 +119,8 @@ kill %1     # SIGTERM: apagado controlado
 conexiones nuevas y espera a que terminen las existentes. Una **segunda** señal
 fuerza el apagado inmediato.
 
-## Pruebas de estrés
+## Pruebas y estrés
 
-Ver `docs/PRUEBAS.md` (incluye `scripts/stress.sh`).
+La metodología de pruebas y de estrés está en el informe (`docs/informe.md`,
+sección 7). Scripts: `scripts/stress.sh` (estrés), `scripts/test-pampero.sh`
+(prueba de humo del core), `scripts/test-pop3.sh` (disector POP3).
